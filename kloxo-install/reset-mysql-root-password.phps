@@ -1,4 +1,4 @@
-<?php 
+<?php
 //
 //    Kloxo, Hosting Panel
 //
@@ -19,30 +19,55 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 if (isset($argv[1])) {
-	$pass = $argv[1];
+    $pass = $argv[1];
 } else {
-	$pass = "";
+    $pass = "";
+}
+
+// Проверка, что пароль не пустой
+if (empty($pass)) {
+    print("Error: Password cannot be empty.\n");
+    exit(1);
 }
 
 print("Stopping MySQL\n");
-shell_exec("service mysqld stop");
-print("Start MySQL with skip grant tables\n");
-shell_exec("su mysql -c \"/usr/libexec/mysqld --skip-grant-tables\" >/dev/null 2>&1 &");
-print("Using MySQL to flush privileges and reset password\n");
-sleep(10);
-system("echo \"update user set password = Password('$pass') where User = 'root'\" | mysql -u root mysql ", $return);
+shell_exec("service mysql stop");
 
-while($return) {
-	print("MySQL could not connect, will sleep and try again\n");
-	sleep(10);
-	system("echo \"update user set password = Password('$pass') where User = 'root'\" | mysql -u root mysql", $return);
+// Запуск MySQL с пропуском проверки прав доступа
+print("Starting MySQL with skip grant tables\n");
+shell_exec("mysqld_safe --skip-grant-tables >/dev/null 2>&1 &");
+
+// Ожидание запуска MySQL
+sleep(10);
+
+// Сброс пароля для root пользователя
+print("Resetting MySQL root password\n");
+$query = "ALTER USER 'root'@'localhost' IDENTIFIED BY '$pass';";
+system("mysql -u root -e \"$query\"", $return);
+
+while ($return) {
+    print("MySQL could not connect, retrying...\n");
+    sleep(10);
+    system("mysql -u root -e \"$query\"", $return);
 }
 
-print("Password reset succesfully. Now killing MySQL softly\n");
-shell_exec("killall mysqld");
-print("Sleeping 10 seconds\n");
-shell_exec("sleep 10");
-print("Restarting the actual MySQL service\n");
-system("service mysqld restart");
-print("Password successfully reset to \"$pass\"\n");
+// Применение изменений
+system("mysql -u root -e \"FLUSH PRIVILEGES;\"", $flush_return);
+if ($flush_return) {
+    print("Error: Failed to flush privileges.\n");
+    exit(1);
+}
 
+// Остановка MySQL
+print("Killing MySQL process\n");
+shell_exec("killall mysqld");
+
+// Пауза перед перезапуском
+print("Sleeping for 10 seconds\n");
+sleep(10);
+
+// Перезапуск MySQL
+print("Restarting MySQL service\n");
+system("service mysql restart");
+
+print("Password successfully reset to \"$pass\"\n");

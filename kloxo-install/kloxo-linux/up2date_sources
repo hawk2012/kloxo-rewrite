@@ -1,26 +1,16 @@
-### This describes the various package repositories (repos) that up2date will
-### query for packages. It currently supports apt-rpm, yum, and "dir" repos.
-### Format is one repository (repo) entry per line, # starts comments, the
-### first word on each line is the type of repo.
-### The default RHN (using "default" as the url means use the one in the
-### up2date config file). This is required.
-#up2date default
-### Note: when a channel label is required for the non up2date repos,
-### the label is solely used as an internal identifier and is not
-### based on the url or any other info from the repos.
-### An apt style repo (the example is arjan's 2.6 kernel repo).
-### The format is:
-### type  channel-label      service:server	    path        repo name
-#apt arjan-2.6-kernel-i386 http://people.redhat.com ~arjanv/2.5/ kernel
-### Note: for apt repos, there can be multiple repo names specified (space
-### seperated).
-### A yum style repo. The format is:
-### type  channel-label     url
-#yum fedora-core-development http://download.fedora.redhat.com/pub/fedora/linux/core/development/$ARCH/
-### A local directory full of packages (a "dir" repo). For example:
-#dir my-favorite-rpms /var/spool/RPMS/
-# Multiple versions of all repos except "up2date" can be used. Dependencies
-# can be resolved "cross-repo" if need be.
+### This describes the various package repositories (repos) that apt will
+### query for packages. It currently supports APT repos.
+### Format is one repository (repo) entry per line, # starts comments.
+### The first word on each line is the type of repo.
 
-yum lxcenter-updates http://download.lxcenter.org/download/update/centos-5/$ARCH/
+### APT style repo. The format is:
+### deb [options] url distribution component
+deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/ubuntu/ubuntu  main
+deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/debian/debian  main
 
+### Testing repository (disabled by default)
+### Do not use/enable this on production servers!
+# deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/testing/ubuntu/ubuntu  main
+# deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/testing/debian/debian  main
+
+### Note: For APT repos, there can be multiple distributions and components specified.

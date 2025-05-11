@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #    Kloxo, Hosting Control Panel
 #
 #    Copyright (C) 2000-2009	LxLabs
@@ -17,15 +17,21 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# This file creates kloxo-install.zip for download server.
+# This script creates kloxo-install.zip for download server.
 # 
-######
+
 echo "################################"
 echo "### Start packaging"
-cd ../
+
+# Переход в корневую директорию проекта
+cd ../ || { echo "Failed to change directory"; exit 1; }
+
+# Удаление предыдущего архива
 rm -f ../kloxo-install/kloxo-install.zip
-echo "### Create zip package..."
-#
+
+echo "### Creating zip package..."
+
+# Создание архива с исключением ненужных файлов и директорий
 zip -r9 ./kloxo-install/kloxo-install.zip ./kloxo-install -x \
 "*/CVS/*" \
 "*/.svn/*" \
@@ -37,13 +43,21 @@ zip -r9 ./kloxo-install/kloxo-install.zip ./kloxo-install -x \
 "*/kloxo-install-master.sh" \
 "*/kloxo-install-slave.sh" \
 "*/kloxo-installer.sh" \
-"*/kloxo-patcher.sh" \
-
 "*/make-distribution.sh"
 
-#
+# Проверка успешности создания архива
+if [ $? -eq 0 ]; then
+    echo "### Packaging completed successfully"
+else
+    echo "### Error occurred during packaging"
+    exit 1
+fi
+
 echo "### Finished"
 echo "################################"
-cd ./kloxo-install
+
+# Возвращение в директорию kloxo-install
+cd ./kloxo-install || { echo "Failed to change directory"; exit 1; }
+
+# Вывод информации о созданном архиве
 ls -lh kloxo-install.zip
-#

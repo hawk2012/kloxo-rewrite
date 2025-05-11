@@ -1,4 +1,4 @@
-<?php 
+<?php
 //
 //    Kloxo, Hosting Panel
 //
@@ -20,18 +20,16 @@
 
 include_once "htmllib/lib/include.php";
 
-$installcomp['mail'] = array("vpopmail", "courier-imap-toaster", "courier-authlib-toaster", "qmail", "safecat", "httpd", "spamassassin", "ezmlm-toaster", "autorespond-toaster");
-$installcomp['web'] = array("httpd", "pure-ftpd");
-$installcomp['dns'] = array("bind", "bind-chroot");
-$installcomp['database'] = array("mysql");
-
+$installcomp['mail'] = array("postfix", "dovecot", "spamassassin");
+$installcomp['web'] = array("apache2", "pure-ftpd");
+$installcomp['dns'] = array("bind9");
+$installcomp['database'] = array("mysql-server");
 
 function install_general_mine($value) {
     $value = implode(" ", $value);
     print("Installing $value ....\n");
-    system("PATH=\$PATH:/usr/sbin yum -y install $value");
+    system("apt update && apt install -y $value");
 }
-
 
 function installcomp_mail() {
     system('pear channel-update "pear.php.net"'); // to remove old channel warning
@@ -41,11 +39,10 @@ function installcomp_mail() {
     system("pear install log");
 }
 
-
 function install_main() {
-
     global $installcomp;
     global $argv;
+
     $comp = array("web", "mail", "dns", "database");
 
     $list = parse_opt($argv);
@@ -70,21 +67,21 @@ function install_main() {
         }
     }
 
-    $pattern = "Include /etc/httpd/conf/kloxo/kloxo.conf";
-    $file = "/etc/httpd/conf/httpd.conf";
+    $pattern = "Include /etc/apache2/conf-available/kloxo.conf";
+    $file = "/etc/apache2/apache2.conf";
     $comment = "#Kloxo";
     addLineIfNotExist($file, $pattern, $comment);
-    mkdir("/etc/httpd/conf/kloxo/");
+
+    mkdir("/etc/apache2/conf-available/kloxo/");
     $dir_path = dirname(__FILE__);
-    copy("$dir_path/kloxo.conf", "/etc/httpd/conf/kloxo/kloxo.conf");
-    touch("/etc/httpd/conf/kloxo/virtualhost.conf");
-    touch("/etc/httpd/conf/kloxo/webmail.conf");
-    touch("/etc/httpd/conf/kloxo/init.conf");
-    mkdir("/etc/httpd/conf/kloxo/forward/");
-    touch("/etc/httpd/conf/kloxo/forward/forwardhost.conf");
+    copy("$dir_path/kloxo.conf", "/etc/apache2/conf-available/kloxo/kloxo.conf");
+    touch("/etc/apache2/conf-available/kloxo/virtualhost.conf");
+    touch("/etc/apache2/conf-available/kloxo/webmail.conf");
+    touch("/etc/apache2/conf-available/kloxo/init.conf");
+    mkdir("/etc/apache2/conf-available/kloxo/forward/");
+    touch("/etc/apache2/conf-available/kloxo/forward/forwardhost.conf");
 
-
-    $options_file = "/var/named/chroot/etc/global.options.named.conf";
+    $options_file = "/etc/bind/named.conf.options";
 
     $example_options  = "acl \"lxcenter\" {\n";
     $example_options .= " localhost;\n";
@@ -110,26 +107,31 @@ function install_main() {
     $example_options .= "# query_logging;\n";
     $example_options .= "# };\n";
     $example_options .= "#};\n";
-    if (!lfile_exists($options_file)) {
+
+    if (!file_exists($options_file)) {
         touch($options_file);
-        chown($options_file, "named");
+        chown($options_file, "bind");
     }
-    $cont = lfile_get_contents($options_file);
+    $cont = file_get_contents($options_file);
     $pattern = "options";
     if (!preg_match("+$pattern+i", $cont)) {
         file_put_contents($options_file, "$example_options\n");
     }
+
     $pattern = 'include "/etc/kloxo.named.conf";';
-    $file = "/var/named/chroot/etc/named.conf";
+    $file = "/etc/bind/named.conf";
     $comment = "//Kloxo";
     addLineIfNotExist($file, $pattern, $comment);
-    touch("/var/named/chroot/etc/kloxo.named.conf");
-    chown("/var/named/chroot/etc/kloxo.named.conf", "named");
-
+    touch("/etc/bind/kloxo.named.conf");
+    chown("/etc/bind/kloxo.named.conf", "bind");
 }
 
 function addLineIfNotExist($filename, $pattern, $comment) {
-    $cont = lfile_get_contents($filename);
+    if (file_exists($filename)) {
+        $cont = file_get_contents($filename);
+    } else {
+        $cont = '';
+    }
 
     if (!preg_match("+$pattern+i", $cont)) {
         file_put_contents($filename, "\n$comment \n\n", FILE_APPEND);
@@ -138,15 +140,11 @@ function addLineIfNotExist($filename, $pattern, $comment) {
     } else {
         print("Pattern '$pattern' Already present in $filename\n");
     }
-
-
 }
-
 
 function checkIfYes($arg) {
     return ($arg == 'y' || $arg == 'yes' || $arg == 'Y' || $arg == 'YES');
 }
-
 
 function getAcceptValue($soft) {
     print("Do you want me to install $soft Components? (YES/no):");

@@ -17,40 +17,72 @@
 //
 //    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 
 include_once "htmllib/lib/include.php";
 
-createNewcertificate();
+createNewCertificate();
 
-function createNewcertificate()
+function createNewCertificate()
 {
- global $gbl, $login, $ghtml;
- $cerpath = "server.crt";
- $keypath = "server.key";
- $requestpath = "a.csr"; 
- 
-$ltemp["countryName" ] = "IN";
-$ltemp["stateOrProvinceName" ] = "Bn";
-$ltemp["localityName" ] = "Bn";
-$ltemp["organizationName" ] = "LxCenter";
-$ltemp["organizationalUnitName" ] = "Kloxo";
-$ltemp["commonName" ] = "Kloxo";
-$ltemp["emailAddress" ] = "contact@lxcenter.org";
- 
- $privkey = openssl_pkey_new();
- openssl_pkey_export_to_file($privkey, $keypath);
- $csr = openssl_csr_new($ltemp, $privkey);
- openssl_csr_export_to_file($csr, $requestpath);
+    global $gbl, $login, $ghtml;
 
- $sscert = openssl_csr_sign($csr, null, $privkey, 365);
- openssl_x509_export_to_file($sscert, $cerpath); 
+    $cerpath = "server.crt";
+    $keypath = "server.key";
+    $requestpath = "a.csr";
 
- $src = getcwd();
- $dest ='/usr/local/lxlabs/kloxo/ext/lxhttpd/conf';
- root_execsys("lxfilesys_mkdir",$dest."/ssl.crt/");
- root_execsys("lxfilesys_mkdir",$dest."/ssl.key/");
- root_execsys("lxfilesys_mv", "$src/$cerpath", $dest."/ssl.crt/".$cerpath);
- root_execsys("lxfilesys_mv", "$src/$keypath", $dest."/ssl.key/".$cerpath);
- root_execsys("lxfilesys_mv", "$src/$requestpath", "$dest/$requestpath");
+    // Настройки для сертификата
+    $ltemp["countryName"] = "IN"; // Страна (например, IN для Индии)
+    $ltemp["stateOrProvinceName"] = "Bn"; // Регион или штат
+    $ltemp["localityName"] = "Bn"; // Город
+    $ltemp["organizationName"] = "LxCenter"; // Организация
+    $ltemp["organizationalUnitName"] = "Kloxo"; // Подразделение организации
+    $ltemp["commonName"] = "Kloxo"; // Имя сервера (например, домен)
+    $ltemp["emailAddress"] = "contact@lxcenter.org"; // Email
 
+    // Генерация закрытого ключа
+    $privkey = openssl_pkey_new([
+        "private_key_bits" => 2048, // Размер ключа (2048 бит рекомендуется)
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    ]);
+
+    if (!$privkey) {
+        die("Failed to generate private key.\n");
+    }
+
+    // Экспорт закрытого ключа в файл
+    openssl_pkey_export_to_file($privkey, $keypath);
+
+    // Создание CSR (Certificate Signing Request)
+    $csr = openssl_csr_new($ltemp, $privkey);
+    if (!$csr) {
+        die("Failed to create CSR.\n");
+    }
+
+    // Экспорт CSR в файл
+    openssl_csr_export_to_file($csr, $requestpath);
+
+    // Подписание сертификата (самоподписанный сертификат)
+    $sscert = openssl_csr_sign($csr, null, $privkey, 365); // Срок действия: 365 дней
+    if (!$sscert) {
+        die("Failed to sign certificate.\n");
+    }
+
+    // Экспорт сертификата в файл
+    openssl_x509_export_to_file($sscert, $cerpath);
+
+    // Перемещение файлов в целевую директорию
+    $src = getcwd();
+    $dest = '/usr/local/lxlabs/kloxo/ext/lxhttpd/conf';
+
+    // Создание директорий для сертификатов и ключей
+    @mkdir("$dest/ssl.crt", 0755, true);
+    @mkdir("$dest/ssl.key", 0755, true);
+
+    // Перемещение файлов
+    rename("$src/$cerpath", "$dest/ssl.crt/$cerpath");
+    rename("$src/$keypath", "$dest/ssl.key/$keypath");
+    rename("$src/$requestpath", "$dest/$requestpath");
+
+    echo "SSL certificate and key successfully created and moved to $dest\n";
 }

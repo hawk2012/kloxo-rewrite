@@ -1,23 +1,11 @@
+# LxCenter APT Repository
 #
-#LxCenter RPM Repository
-#
-[lxcenter-updates]
-name=%distro%-$releasever - LxCenter Updates
-baseurl=http://download.lxcenter.org/download/update/%distro%/$basearch/
-gpgcheck=0
-enabled=1
-protect=1
-#
-##################################################
+# Updates repository
+deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/  ubuntu main
+deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/  debian main
+
+# Testing repository (disabled by default)
 # Do not use/enable this on production servers!
-# You are be warned.
-#
-[lxcenter-testing]
-name=%distro%-$releasever - LxCenter Testing
-baseurl=http://download.lxcenter.org/download/test/%distro%/$basearch/
-gpgcheck=0
-enabled=0
-protect=0
-#
-#
-##################################################
+# You are warned.
+# deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/testing/  ubuntu main
+# deb [trusted=yes] https://raw.githubusercontent.com/hawk2012/kloxo-rewrite/main/testing/  debian main
